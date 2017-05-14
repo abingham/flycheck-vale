@@ -64,8 +64,8 @@
   '(("error" . error)
     ("warning" . warning)))
 
-(defun flycheck-vale--issue-to-error (result)
-  "Parse a single vale issue into a flycheck error struct.
+(defun flycheck-vale--issue-to-error (issue)
+  "Parse a single vale issue, ISSUE, into a flycheck error struct.
 
 We only fill in what we can get from the vale issue directly. The
 rest (e.g. filename) gets filled in elsewhere."
@@ -77,8 +77,7 @@ rest (e.g. filename) gets filled in elsewhere."
      :level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error))))
 
 (defun flycheck-vale--output-to-errors (output)
-  "Parse the full JSON output of vale into a sequence of flycheck
-error structs."
+  "Parse the full JSON output of vale, OUTPUT, into a sequence of flycheck error structs."
   (let* ((full-results (json-read-from-string output))
 
          ;; Get the list of issues for each file.
@@ -93,7 +92,7 @@ error structs."
     (mapcar 'flycheck-vale--issue-to-error issues)))
 
 (defun flycheck-vale--start (checker callback)
-  "Run vale on the current buffer's contents."
+  "Run vale on the current buffer's contents with CHECKER, passing the results to CALLBACK."
 
   (let ((orig-buf (current-buffer))
         (outbuf (get-buffer-create "*flycheck-vale-output*")))
