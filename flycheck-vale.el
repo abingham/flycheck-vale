@@ -69,7 +69,7 @@
 
 We only fill in what we can get from the vale issue directly. The
 rest (e.g. filename) gets filled in elsewhere."
-  (let-alist result
+  (let-alist issue
     (flycheck-error-new
      :line .Line
      :column (elt .Span 0)
