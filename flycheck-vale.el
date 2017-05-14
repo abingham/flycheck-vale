@@ -60,7 +60,7 @@
   '(("error" . error)
     ("warning" . warning)))
 
-(defun flycheck-vale--result-to-error (result)
+(defun flycheck-vale--issue-to-error (result)
   (let-alist result
     (flycheck-error-new
      :line .Line
@@ -72,13 +72,10 @@
      :level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error))))
 
 (defun flycheck-vale--output-to-errors (output)
-  (let* ((data (json-read-string output))
-         (issues (concatenate 'list (mapcar 'cdr data))))
-    (mapcar 'flycheck-vale--issue-to-error issues))
-  (mapcar 'flycheck-vale--result-to-error results))
-
-(defun flycheck-vale--handle-process-finished ()
-  (message "llamas"))
+  (let* ((full-results (json-read-from-string output))
+         (result-vecs (mapcar 'cdr full-results))
+         (issues (apply 'concatenate 'list (mapcar 'cdr full-results))))
+    (mapcar 'flycheck-vale--issue-to-error issues)))
 
 (defun flycheck-vale--start (checker callback)
   "Run vale on the current buffer's contents."
@@ -89,29 +86,25 @@
     (with-current-buffer outbuf
       (read-only-mode 0)
       (erase-buffer))
-    (let ((proc (call-process-region
-                 (point-min)
-                 (point-max)
-                 flycheck-vale-program
-                 nil ;; delete
-                 outbuf
-                 nil ;; display
-                 "--output"
-                 "JSON")))
 
-      (set-process-sentinel
-       proc
-       #'(lambda (process event)
-           (when (string-equal event "finished\n")
-             (flycheck-vale--handle-process-finished)
-             ;; (with-current-buffer outbuf
-             ;;   (let ((errors (flycheck-vale--parse-output (buffer-string))))
-             ;;     (loop for err in errors do
-             ;;           (setf (flycheck-error-buffer err) orig-buf)
-             ;;           (setf (flycheck-error-filename err) (buffer-file-name orig-buf))
-             ;;           (setf (flycheck-error-checker err) checker))
-             ;;     (funcall callback 'finished errors)))
-             ))))))
+    ;; Run vale
+    (call-process-region
+     (point-min)
+     (point-max)
+     flycheck-vale-program
+     nil ;; delete
+     outbuf
+     nil ;; display
+     "--output"
+     "JSON")
+
+    (with-current-buffer outbuf
+      (let ((errors (flycheck-vale--output-to-errors (buffer-string))))
+        (loop for err in errors do
+              (setf (flycheck-error-buffer err) orig-buf)
+              (setf (flycheck-error-filename err) (buffer-file-name orig-buf))
+              (setf (flycheck-error-checker err) checker))
+        (funcall callback 'finished errors)))))
 
 (defun flycheck-vale--in-supported-mode ()
   "Determines if buffer is in a mode where vale linting is appropriate."
