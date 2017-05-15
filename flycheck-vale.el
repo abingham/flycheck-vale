@@ -60,6 +60,11 @@
   "List of major modes in which to apply this checker."
   :type '(repeat function))
 
+(defcustom flycheck-vale-output-buffer "*flycheck-vale*"
+  "Buffer where tool output gets written."
+  :type '(string)
+  :group 'flycheck-vale)
+
 (defconst flycheck-vale--level-map
   '(("error" . error)
     ("warning" . warning)))
@@ -91,39 +96,49 @@ rest (e.g. filename) gets filled in elsewhere."
          (issues (apply 'append (mapcar 'cdr full-results))))
     (mapcar 'flycheck-vale--issue-to-error issues)))
 
+(defun flycheck-vale--handle-finished (checker callback buf)
+  "Parse the contents of the output buffer into flycheck error
+structures, attaching CHECKER and BUF to the structures, and
+passing the results to CALLBACK."
+  (let* ((output (with-current-buffer flycheck-vale-output-buffer (buffer-string)))
+         (errors (flycheck-vale--output-to-errors output)))
+    ;; Fill in the rest of the error struct database
+    (cl-loop for err in errors do
+          (setf
+           (flycheck-error-buffer err) buf
+           (flycheck-error-filename err) (buffer-file-name buf)
+           (flycheck-error-checker err) checker))
+    (funcall callback 'finished errors)))
+
+(defun flycheck-vale--normal-completion? (event)
+  (or  (string-equal event "finished\n")
+       (string-match "exited abnormally with code 1.*" event)))
+
 (defun flycheck-vale--start (checker callback)
   "Run vale on the current buffer's contents with CHECKER, passing the results to CALLBACK."
 
-  (let ((orig-buf (current-buffer))
-        (outbuf (get-buffer-create "*flycheck-vale-output*")))
+  ;; Clear the output buffer
+  (with-current-buffer (get-buffer-create flycheck-vale-output-buffer)
+    (read-only-mode 0)
+    (erase-buffer))
 
-    ;; Clear the output buffer
-    (with-current-buffer outbuf
-      (read-only-mode 0)
-      (erase-buffer))
+  (let* ((process-connection-type nil)
+         (proc (start-process "flycheck-vale-process"
+                              flycheck-vale-output-buffer
+                              flycheck-vale-program
+                              "--output"
+                              "JSON")))
+    (lexical-let ((checker checker)
+                  (callback callback)
+                  (buf (current-buffer)))
+      (set-process-sentinel
+       proc
+       #'(lambda (process event)
+           (when (flycheck-vale--normal-completion? event)
+             (flycheck-vale--handle-finished checker callback buf)))))
 
-    ;; Run vale
-    (call-process-region
-     (point-min)
-     (point-max)
-     flycheck-vale-program
-     nil ;; delete
-     outbuf
-     nil ;; display
-     "--output"
-     "JSON")
-
-    ;; Parse the content of the output buffer into flycheck error structures,
-    ;; passing them to the provided callback.
-    (with-current-buffer outbuf
-      (let ((errors (flycheck-vale--output-to-errors (buffer-string))))
-        ;; Fill in the rest of the error struct data.
-        (cl-loop for err in errors do
-              (setf
-               (flycheck-error-buffer err) orig-buf
-               (flycheck-error-filename err) (buffer-file-name orig-buf)
-               (flycheck-error-checker err) checker))
-        (funcall callback 'finished errors)))))
+    (process-send-region proc (point-min) (point-max))
+    (process-send-eof proc)))
 
 ;;;###autoload
 (defun flycheck-vale-setup ()
