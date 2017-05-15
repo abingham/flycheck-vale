@@ -118,7 +118,7 @@ rest (e.g. filename) gets filled in elsewhere."
     (with-current-buffer outbuf
       (let ((errors (flycheck-vale--output-to-errors (buffer-string))))
         ;; Fill in the rest of the error struct data.
-        (loop for err in errors do
+        (cl-loop for err in errors do
               (setf
                (flycheck-error-buffer err) orig-buf
                (flycheck-error-filename err) (buffer-file-name orig-buf)
