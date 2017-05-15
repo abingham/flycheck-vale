@@ -88,7 +88,7 @@ rest (e.g. filename) gets filled in elsewhere."
          ;; prepared for the theoretical possibility that the issues are somehow
          ;; split across multiple files. This is basically a punt in lieu of
          ;; more information.
-         (issues (apply 'concatenate 'list (mapcar 'cdr full-results))))
+         (issues (apply 'append (mapcar 'cdr full-results))))
     (mapcar 'flycheck-vale--issue-to-error issues)))
 
 (defun flycheck-vale--start (checker callback)
