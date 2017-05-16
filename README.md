@@ -15,3 +15,14 @@ To use `flycheck-vale` just `require` it and run `flycheck-vale-setup`:
 (require 'flycheck-vale)
 (flycheck-vale-setup)
 ```
+
+## Dis/enabling flycheck vale for specific buffers
+
+The buffer-local variable `flycheck-vale-enabled` allows you to enabled or
+disable vale linting for specific buffers. If this variable is `t` then vale
+linting will be performed (assuming you've got `flycheck-mode` enabled, etc.)
+Likewise, if it is `nil` then vale linting will never be performed.
+
+You can use `flycheck-vale-toggle-enabled` to toggle this variable between `t`
+and `nil`. (And of course you can set it other ways if you want.) By default the
+variable is `t`.
