@@ -65,6 +65,9 @@
   :type '(string)
   :group 'flycheck-vale)
 
+(defvar-local flycheck-vale-enabled t
+  "Buffer-local variable determining if flycheck-vale should be applied.")
+
 (defconst flycheck-vale--level-map
   '(("error" . error)
     ("warning" . warning)))
@@ -147,9 +150,16 @@ passing the results to CALLBACK."
 This adds the vale checker to the list of flycheck checkers."
   (add-to-list 'flycheck-checkers 'vale))
 
+;;;###autoload
+(defun flycheck-vale-toggle-enabled ()
+  "Toggle `flycheck-vale-enabled'."
+  (interactive)
+  (setq flycheck-vale-enabled (not flycheck-vale-enabled)))
+
 (flycheck-define-generic-checker 'vale
   "A flycheck checker using vale natural language linting."
   :start #'flycheck-vale--start
+  :predicate (lambda () flycheck-vale-enabled)
   :modes flycheck-vale-modes)
 
 (provide 'flycheck-vale)
