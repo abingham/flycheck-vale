@@ -66,18 +66,18 @@
   "Parse the full JSON output of vale, OUTPUT, into a sequence of flycheck error structs."
   (let* ((issues (cdar (json-read-from-string output)))
 		 (filename (buffer-file-name buffer)))
-	(cl-loop
-	 for issue across issues collect
-	 (let-alist issue
-	   (flycheck-error-new
-		:buffer buffer
-		:filename filename
-		:checker checker
-		:line .Line
-		:column (elt .Span 0)
-		:message .Message
-		:level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error)
-		:id .Check)))))
+	(mapcar (lambda (issue)
+		 (let-alist issue
+		   (flycheck-error-new
+			:buffer buffer
+			:filename filename
+			:checker checker
+			:line .Line
+			:column (elt .Span 0)
+			:message .Message
+			:level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error)
+			:id .Check)))
+	   issues)))
 
 (flycheck-def-executable-var vale "vale")
 
