@@ -51,19 +51,9 @@
   :prefix "flycheck-vale-"
   :group 'tools)
 
-(defcustom flycheck-vale-program "vale"
-  "The vale executable to use."
-  :type '(string)
-  :group 'flycheck-vale)
-
 (defcustom flycheck-vale-modes '(text-mode markdown-mode rst-mode)
   "List of major modes in which to apply this checker."
   :type '(repeat function))
-
-(defcustom flycheck-vale-output-buffer "*flycheck-vale*"
-  "Buffer where tool output gets written."
-  :type '(string)
-  :group 'flycheck-vale)
 
 (defvar-local flycheck-vale-enabled t
   "Buffer-local variable determining if flycheck-vale should be applied.")
@@ -72,76 +62,31 @@
   '(("error" . error)
     ("warning" . warning)))
 
-(defun flycheck-vale--issue-to-error (issue)
-  "Parse a single vale issue, ISSUE, into a flycheck error struct.
-
-We only fill in what we can get from the vale issue directly. The
-rest (e.g. filename) gets filled in elsewhere."
-  (let-alist issue
-    (flycheck-error-new
-     :line .Line
-     :column (elt .Span 0)
-     :message .Message
-     :level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error))))
-
-(defun flycheck-vale--output-to-errors (output)
+(defun flycheck-vale--output-to-errors (output checker buffer)
   "Parse the full JSON output of vale, OUTPUT, into a sequence of flycheck error structs."
-  (let* ((full-results (json-read-from-string output))
+  (let* ((issues (cdar (json-read-from-string output)))
+		 (filename (buffer-file-name buffer)))
+	(cl-loop
+	 for issue across issues collect
+	 (let-alist issue
+	   (flycheck-error-new
+		:buffer buffer
+		:filename filename
+		:checker checker
+		:line .Line
+		:column (elt .Span 0)
+		:message .Message
+		:level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error)
+		:id .Check)))))
 
-         ;; Get the list of issues for each file.
-         (result-vecs (mapcar 'cdr full-results))
+(flycheck-def-executable-var vale "vale")
 
-         ;; Chain all of the issues together. The point here, really, is that we
-         ;; don't expect results from more than one file, but we should be
-         ;; prepared for the theoretical possibility that the issues are somehow
-         ;; split across multiple files. This is basically a punt in lieu of
-         ;; more information.
-         (issues (apply 'append (mapcar 'cdr full-results))))
-    (mapcar 'flycheck-vale--issue-to-error issues)))
-
-(defun flycheck-vale--handle-finished (checker callback buf)
-  "Parse the contents of the output buffer into flycheck error
-structures, attaching CHECKER and BUF to the structures, and
-passing the results to CALLBACK."
-  (let* ((output (with-current-buffer flycheck-vale-output-buffer (buffer-string)))
-         (errors (flycheck-vale--output-to-errors output)))
-    ;; Fill in the rest of the error struct database
-    (cl-loop for err in errors do
-          (setf
-           (flycheck-error-buffer err) buf
-           (flycheck-error-filename err) (buffer-file-name buf)
-           (flycheck-error-checker err) checker))
-    (funcall callback 'finished errors)))
-
-(defun flycheck-vale--normal-completion? (event)
-  (or  (string-equal event "finished\n")
-       (string-match "exited abnormally with code 1.*" event)))
-
-(defun flycheck-vale--start (checker callback)
-  "Run vale on the current buffer's contents with CHECKER, passing the results to CALLBACK."
-
-  ;; Clear the output buffer
-  (with-current-buffer (get-buffer-create flycheck-vale-output-buffer)
-    (read-only-mode 0)
-    (erase-buffer))
-
-  (let* ((process-connection-type nil)
-         (proc (start-process "flycheck-vale-process"
-                              flycheck-vale-output-buffer
-                              flycheck-vale-program
-                              "--output"
-                              "JSON")))
-    (lexical-let ((checker checker)
-                  (callback callback)
-                  (buf (current-buffer)))
-      (set-process-sentinel
-       proc
-       #'(lambda (process event)
-           (when (flycheck-vale--normal-completion? event)
-             (flycheck-vale--handle-finished checker callback buf)))))
-
-    (process-send-region proc (point-min) (point-max))
-    (process-send-eof proc)))
+(flycheck-define-command-checker 'vale
+  "A flycheck checker using vale natural language linting."
+  :command '("vale" "--output" "JSON" source)
+  :error-parser #'flycheck-vale--output-to-errors
+  :predicate (lambda () flycheck-vale-enabled)
+  :modes flycheck-vale-modes)
 
 ;;;###autoload
 (defun flycheck-vale-setup ()
@@ -155,12 +100,6 @@ This adds the vale checker to the list of flycheck checkers."
   "Toggle `flycheck-vale-enabled'."
   (interactive)
   (setq flycheck-vale-enabled (not flycheck-vale-enabled)))
-
-(flycheck-define-generic-checker 'vale
-  "A flycheck checker using vale natural language linting."
-  :start #'flycheck-vale--start
-  :predicate (lambda () flycheck-vale-enabled)
-  :modes flycheck-vale-modes)
 
 (provide 'flycheck-vale)
 
