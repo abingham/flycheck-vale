@@ -1,10 +1,10 @@
-;;; flycheck-vale.el --- flycheck integration for vale
+;;; flycheck-vale.el --- flycheck integration for vale -*- lexical-binding: t -*-
 ;; Copyright (c) 2017 Austin Bingham
 ;;
 ;; Author: Austin Bingham <austin.bingham@gmail.com>
 ;; Version: 0.1
 ;; URL: https://github.com/abingham/flycheck-vale
-;; Package-Requires: ((emacs "24.4") (flycheck "0.22"))
+;; Package-Requires: ((emacs "24.4") (flycheck "0.22") (let-alist "1.0.4"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -44,7 +44,9 @@
 ;;
 ;;; Code:
 
+(require 'cl-lib)
 (require 'flycheck)
+(require 'let-alist)
 
 (defgroup flycheck-vale nil
   "Variables related to flycheck-vale."
