@@ -62,6 +62,7 @@
 
 (defconst flycheck-vale--level-map
   '(("error" . error)
+    ("suggestion" . info)
     ("warning" . warning)))
 
 (defun flycheck-vale--output-to-errors (output checker buffer)
