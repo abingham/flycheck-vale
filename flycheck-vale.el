@@ -58,9 +58,7 @@
   :type '(string)
   :group 'flycheck-vale)
 
-(defcustom flycheck-vale-modes '(text-mode markdown-mode rst-mode)
-  "List of major modes in which to apply this checker."
-  :type '(repeat function))
+(defconst flycheck-vale-modes '(text-mode markdown-mode rst-mode org-mode))
 
 (defcustom flycheck-vale-output-buffer "*flycheck-vale*"
   "Buffer where tool output gets written."

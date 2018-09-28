@@ -20,7 +20,7 @@ To use `flycheck-vale` just `require` it and run `flycheck-vale-setup`:
 (flycheck-vale-setup)
 ```
 
-## Dis/enabling flycheck vale for specific buffers
+## Dis/enabling `flycheck-vale` for specific buffers
 
 The buffer-local variable `flycheck-vale-enabled` allows you to enabled or
 disable vale linting for specific buffers. If this variable is `t` then vale
@@ -30,3 +30,11 @@ Likewise, if it is `nil` then vale linting will never be performed.
 You can use `flycheck-vale-toggle-enabled` to toggle this variable between `t`
 and `nil`. (And of course you can set it other ways if you want.) By default the
 variable is `t`.
+
+## Enabling `flycheck-vale` for new modes
+
+By default `flycheck-vale` will only be enabled for the modes in
+`flycheck-vale-modes` (currently `text-mode`, `markdown-mode`, `rst-mode`, and
+`org-mode`). To enable it for some other mode, use the function
+`flycheck-add-mode`. If you think that this mode should be supported by
+`flycheck-vale` by default, bring it up in an issue.
