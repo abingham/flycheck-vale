@@ -70,7 +70,8 @@
 
 (defconst flycheck-vale--level-map
   '(("error" . error)
-    ("warning" . warning)))
+    ("warning" . warning)
+    ("suggestion" . info)))
 
 (defun flycheck-vale--issue-to-error (issue)
   "Parse a single vale issue, ISSUE, into a flycheck error struct.
