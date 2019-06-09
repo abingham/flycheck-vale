@@ -82,6 +82,7 @@ rest (e.g. filename) gets filled in elsewhere."
      :line .Line
      :column (elt .Span 0)
      :message .Message
+     :id .Check
      :level (assoc-default .Severity flycheck-vale--level-map 'string-equal 'error))))
 
 (defun flycheck-vale--output-to-errors (output)
