@@ -132,7 +132,8 @@ passing the results to CALLBACK."
                               flycheck-vale-output-buffer
                               flycheck-vale-program
                               "--output"
-                              "JSON")))
+                              "JSON"
+                              buffer-file-name)))
     (let ((checker checker)
           (callback callback)
           (buf (current-buffer)))
